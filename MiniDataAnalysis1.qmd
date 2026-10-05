@@ -175,9 +175,9 @@ Write your research questions **as questions**, and be specific. You can change 
 
 <!-------------------------- Start your work below ---------------------------->
 
-Primary Research Question: **Did the 2020 list include more female artists than the 2003 list?**
+Primary Research Question: **Did the 2020 list include more female artists than the 2003 list?(1.5)**
 
-Secondary Research Question: **Do albums that hit #1 on Billboard rank higher on the list than albums that didn't?**
+Secondary Research Question: **Do albums that hit #1 on Billboard rank higher on the list than albums that didn't?(1.5)**
 
 
 <!----------------------------------------------------------------------------->
@@ -203,7 +203,15 @@ Your task is to create a table that calculates the proportion of missing values 
 <!-------------------------- Start your work below ---------------------------->
 
 ```{r}
-### Explore missingness here ###
+
+rs <- read.csv("dat/RollingStone500.csv", na.strings = c("", "NA"))
+
+missing_table <- data.frame(
+  variable = names(rs),
+  prop_missing = colMeans(is.na(rs))
+)
+
+missing_table
 
 ```
 
@@ -229,7 +237,9 @@ If missingness is not an issue, describe why.
 <!-------------------------- Start your work below ---------------------------->
 
 
+Missingness isn't really a problem for my questions. The only columns with more than 20% missing are the rank columns (about 28%). But that's because not every album made every list. If an album wasn't on the 2003 list, it just doesn't have a 2003 rank.
 
+For both of my questions, I'm only looking at albums that were actually on the list I'm studying. For those albums, the columns I need (rank, gender, and Billboard position) have little to no missing data. So I can keep my research questions the same.
 
 <!----------------------------------------------------------------------------->
 
@@ -255,8 +265,24 @@ Show the first 6 rows of the tidied data.
 <!-------------------------- Start your work below ---------------------------->
 ```{r}
 
+library(tidyverse)
 
+rs_tidy <- rs |>
+  # keep only the columns I need for my questions
+  select(Clean.Name, Album, Artist.Gender, Peak.Billboard.Position,
+         X2003.Rank, X2020.Rank) |>
+  # make one row per album per list (2003 or 2020)
+  pivot_longer(cols = c(X2003.Rank, X2020.Rank),
+               names_to = "list_year",
+               values_to = "rank") |>
+  # drop rows where the album wasn't on that list
+  filter(!is.na(rank)) |>
+  # clean up the year labels and make a yes/no column for hitting #1
+  mutate(list_year = ifelse(list_year == "X2003.Rank", "2003", "2020"),
+         hit_number_one = Peak.Billboard.Position == 1)
 
+# show the first 6 rows
+head(rs_tidy)
 
 ```
 
@@ -272,8 +298,15 @@ Show the outputted table.
 <!-------------------------- Start your work below ---------------------------->
 ```{r}
 
-
-
+rs_tidy |>
+  summarise(
+    mean_rank = mean(rank, na.rm = TRUE),
+    min_rank  = min(rank, na.rm = TRUE),
+    max_rank  = max(rank, na.rm = TRUE),
+    mean_peak = mean(Peak.Billboard.Position, na.rm = TRUE),
+    min_peak  = min(Peak.Billboard.Position, na.rm = TRUE),
+    max_peak  = max(Peak.Billboard.Position, na.rm = TRUE)
+  )
 
 ```
 
